@@ -13,12 +13,14 @@ import (
 	"github.com/xxii22w/Social/internal/auth"
 	"github.com/xxii22w/Social/internal/mailer"
 	"github.com/xxii22w/Social/internal/store"
+	"github.com/xxii22w/Social/internal/store/cache"
 	"go.uber.org/zap"
 )
 
 type application struct {
 	config        config
 	store         store.Storage
+	cacheStorage  cache.Storage
 	logger        *zap.SugaredLogger
 	mailer        mailer.Client
 	authenticator auth.Authenticator
@@ -32,6 +34,14 @@ type config struct {
 	mail        mailConfig
 	frontendURL string
 	auth        authConfig
+	redisCfg    redisConfig
+}
+
+type redisConfig struct {
+	addr    string
+	pw      string
+	db      int
+	enabled bool
 }
 
 type authConfig struct {
