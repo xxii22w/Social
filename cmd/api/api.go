@@ -105,6 +105,10 @@ func (app *application) mount() http.Handler {
 		MaxAge:           300, // Maximum value not ignored by any of major browsers
 	}))
 
+	if app.config.rateLimiter.Enabled {
+		r.Use(app.RateLimiterMiddleware)
+	}
+
 	// Set a timeout value on the request context (ctx), that will signal
 	// through ctx.Done() that the request has timed out and further
 	// processing should be stopped.
