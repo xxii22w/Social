@@ -17,6 +17,7 @@ import (
 	"github.com/xxii22w/Social/docs"
 	"github.com/xxii22w/Social/internal/auth"
 	"github.com/xxii22w/Social/internal/mailer"
+	"github.com/xxii22w/Social/internal/ratelimiter"
 	"github.com/xxii22w/Social/internal/store"
 	"github.com/xxii22w/Social/internal/store/cache"
 	"go.uber.org/zap"
@@ -29,6 +30,7 @@ type application struct {
 	logger        *zap.SugaredLogger
 	mailer        mailer.Client
 	authenticator auth.Authenticator
+	rateLimiter   ratelimiter.Limiter
 }
 
 type config struct {
@@ -40,6 +42,7 @@ type config struct {
 	frontendURL string
 	auth        authConfig
 	redisCfg    redisConfig
+	rateLimiter ratelimiter.Config
 }
 
 type redisConfig struct {
@@ -89,6 +92,7 @@ func (app *application) mount() http.Handler {
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
+	r.Use(app.RateLimiterMiddleware)
 
 	// Set a timeout value on the request context (ctx), that will signal
 	// through ctx.Done() that the request has timed out and further
@@ -156,16 +160,16 @@ func (app *application) run(mux http.Handler) error {
 
 	shutdown := make(chan error)
 
-	go func ()  {
-		quit := make(chan os.Signal,1)
+	go func() {
+		quit := make(chan os.Signal, 1)
 
-		signal.Notify(quit,syscall.SIGINT,syscall.SIGTERM)
+		signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 		s := <-quit
 
-		ctx,cancel := context.WithTimeout(context.Background(),5 * time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 
-		app.logger.Infow("signal caugth","signal",s.String())
+		app.logger.Infow("signal caugth", "signal", s.String())
 
 		shutdown <- srv.Shutdown(ctx)
 	}()
@@ -173,7 +177,7 @@ func (app *application) run(mux http.Handler) error {
 	app.logger.Infow("server has started", "addr", app.config.addr, "env", app.config.env)
 
 	err := srv.ListenAndServe()
-	if !errors.Is(err,http.ErrServerClosed) {
+	if !errors.Is(err, http.ErrServerClosed) {
 		return err
 	}
 
@@ -183,6 +187,6 @@ func (app *application) run(mux http.Handler) error {
 	}
 
 	app.logger.Infow("server has stopped", "addr", app.config.addr, "env", app.config.env)
- 
- 	return nil
+
+	return nil
 }
