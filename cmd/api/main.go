@@ -1,8 +1,10 @@
 package main
 
 import (
+	"expvar"
 	"log"
 	"os"
+	"runtime"
 	"time"
 
 	"github.com/go-redis/redis/v8"
@@ -132,8 +134,8 @@ func main() {
 	)
 
 	store := store.NewStorage(db)
- 	cacheStorage := cache.NewRedisStorage(rdb)
-	
+	cacheStorage := cache.NewRedisStorage(rdb)
+
 	app := &application{
 		config:        cfg,
 		store:         store,
@@ -143,6 +145,15 @@ func main() {
 		authenticator: jwtAuthenticator,
 		rateLimiter:   rateLimiter,
 	}
+
+	// Metrics collected
+	expvar.NewString("version").Set(version)
+	expvar.Publish("database", expvar.Func(func() any {
+		return db.Stats()
+	}))
+	expvar.Publish("goroutines", expvar.Func(func() any {
+		return runtime.NumGoroutine()
+	}))
 
 	mux := app.mount()
 
