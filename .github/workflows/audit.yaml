@@ -8,7 +8,7 @@ on:
  
 jobs:
   audit:
-    runs-on: ubuntu-20.04
+    runs-on: Linux Mint 22.1
     steps:
       - uses: actions/checkout@v2
  
