@@ -9,13 +9,13 @@ import (
 
 type Storage struct {
 	Users interface {
-		Get(context.Context,int64) (*store.User,error)
-		Set(context.Context,*store.User) error
+		Get(context.Context, int64) (*store.User, error)
+		Set(context.Context, *store.User) error
 	}
 }
 
 func NewRedisStorage(rdb *redis.Client) Storage {
 	return Storage{
-		Users: &user{rdb: rdb},
+		Users: &UserStorage{rdb: rdb},
 	}
 }
